@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c2255c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Цикл</title>
+<style>
+:root{
+  --bg:#fbf6f8; --card:#fff; --ink:#221a1e; --muted:#8a7b82; --line:#efe4e8;
+  --rose:#d6336c; --rose-2:#c2255c; --rose-soft:#fde4ed; --rose-faint:#fff1f5;
+  --green:#22a06b; --green-soft:#ddf5ea; --amber:#e8890c; --amber-soft:#fff1dc;
+  --radius:22px; --shadow:0 6px 24px rgba(120,40,70,.07);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#17121a; --card:#221b25; --ink:#f5edf1; --muted:#a5939c; --line:#352a38;
+  --rose:#f0659a; --rose-2:#e64e86; --rose-soft:#4a2033; --rose-faint:#2c1b25;
+  --green:#3ccf8e; --green-soft:#173a2b; --amber:#ffb347; --amber-soft:#3d2c12; --shadow:none;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+.hidden{display:none!important}
+main{max-width:560px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
+h1{font-size:28px;margin:4px 4px 16px;letter-spacing:-.02em}
+h2{font-size:20px;margin:24px 4px 10px}
+.card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--line);margin-bottom:12px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:999px;background:var(--rose);color:#fff;font-weight:600}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--rose-soft);color:var(--rose-2)}
+.btn.line{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.block{width:100%}
+.pill{display:inline-block;padding:5px 12px;border-radius:999px;font-size:14px;font-weight:600;background:var(--rose-soft);color:var(--rose-2)}
+.pill.green{background:var(--green-soft);color:var(--green)} .pill.amber{background:var(--amber-soft);color:var(--amber)} .pill.gray{background:var(--line);color:var(--muted)}
+
+/* nav */
+nav{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:5}
+nav .in{display:flex;max-width:560px;width:100%}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11px;color:var(--muted);border-radius:16px}
+nav button svg{width:24px;height:24px}
+nav button.on{color:var(--rose-2);background:var(--rose-faint)}
+
+/* today */
+.hero{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center}
+@media (max-width:380px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ring{width:150px;height:150px;position:relative}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .c b{font-size:40px;line-height:1}
+.hero h3{font-size:22px;margin:10px 0 6px;letter-spacing:-.01em;line-height:1.2}
+.timeline{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;text-align:center;position:relative}
+.timeline:before{content:"";position:absolute;top:8px;left:16%;right:16%;height:2px;background:var(--line)}
+.timeline .dot{width:16px;height:16px;border-radius:50%;margin:0 auto 8px;position:relative}
+.timeline .lbl{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.timeline .val{font-weight:600;margin-top:2px}
+.actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.actions .btn{flex:1;min-width:140px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat .k{font-size:13px;color:var(--muted)} .stat .v{font-size:26px;font-weight:700;margin:6px 0 2px;letter-spacing:-.02em}
+.notice{border-radius:16px;padding:12px 14px;background:var(--amber-soft);color:var(--ink);font-size:14px;margin-bottom:12px}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chiprow span{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--rose-faint);border:1px solid var(--line)}
+
+/* calendar */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-head button{width:40px;height:40px;border-radius:50%;background:var(--rose-faint);font-size:20px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal .wd{font-size:12px;color:var(--muted);padding:4px 0}
+.cal .d{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;font-size:15px;border:2px solid transparent}
+.cal .d.out{opacity:.25}
+.cal .d.today{font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.cal .d.p1{background:var(--rose-soft)}
+.cal .d.p2,.cal .d.p3,.cal .d.p4{background:var(--rose);color:#fff}
+.cal .d.pred{border:2px dashed var(--rose)}
+.cal .d.fert{background:var(--green-soft)}
+.cal .d.ovu{border:2px solid var(--green)}
+.cal .d.has:after{content:"";position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.cal .d.p2.has:after,.cal .d.p3.has:after,.cal .d.p4.has:after{background:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+
+/* analysis */
+.bars .row{display:grid;grid-template-columns:76px 1fr 34px;gap:8px;align-items:center;font-size:13px;margin:7px 0}
+.bars .track{height:12px;background:var(--line);border-radius:6px;overflow:hidden;display:flex}
+.bars .track .pp{background:var(--rose)} .bars .track .rest{background:var(--rose-soft)}
+.freq .row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.freq .row:last-child{border:0}
+
+/* history */
+.hist{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.hist:last-child{border:0}
+.hist .ic{width:34px;height:34px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--rose-faint);font-size:15px}
+.hist .b{flex:1;min-width:0}
+.hist .chg{font-size:13px;color:var(--muted);word-wrap:break-word}
+
+/* sheet */
+.backdrop{position:fixed;inset:0;background:rgba(20,8,14,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:26px 26px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom));animation:up .2s ease-out}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-8px;background:var(--bg);padding:6px 0 10px;z-index:1}
+.sec{margin:16px 0}
+.sec>.t{font-weight:700;margin-bottom:8px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{padding:9px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:14px}
+.opt.on{background:var(--rose);border-color:var(--rose);color:#fff}
+.flow .opt{flex:1;min-width:60px;display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:16px;padding:10px 4px;font-size:12px}
+.drops{letter-spacing:-2px;font-size:14px}
+.field{display:flex;gap:8px}
+.field input,textarea,select,.inp{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);outline:none}
+input:focus,textarea:focus{border-color:var(--rose)}
+textarea{min-height:80px;resize:vertical}
+input[type=range]{width:100%;accent-color:var(--rose)}
+.switch{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.switch input{width:22px;height:22px;accent-color:var(--rose)}
+@keyframes up{from{transform:translateY(40px);opacity:.5}}
+@keyframes fade{from{opacity:0}}
+
+/* login */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login .card{width:100%;max-width:360px;padding:28px}
+.login input{margin-bottom:10px}
+.err{color:var(--rose-2);font-size:14px;min-height:20px}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:30;animation:fade .2s}
+.sync{font-size:12px;color:var(--muted);text-align:right;margin:-8px 4px 8px}
+.row-set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row-set:last-child{border:0}
+.row-set input{width:80px;text-align:center;padding:8px}
+.welcome{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.welcome .card{width:100%;max-width:400px;padding:24px}
+.welcome input{margin-bottom:10px}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:16px 0}
+.or:before,.or:after{content:"";flex:1;height:1px;background:var(--line)}
+.status-ok{color:var(--green)} .status-bad{color:var(--rose-2)}
+.sync{display:flex;justify-content:flex-end;gap:6px;align-items:center}
+.sync button{font-size:12px;color:var(--muted);padding:2px 6px;border-radius:8px}
+</style>
+</head>
+<body>
+
+<!-- Welcome / connect (like SetFlow) -->
+<div id="welcome" class="welcome hidden">
+  <div class="card">
+    <div style="text-align:center;margin-bottom:16px"><img src="icon.svg" width="56" height="56" alt=""><h1 style="margin:8px 0 0">Цикл</h1><div class="muted small">Трекер циклу з синхронізацією на твій сервер</div></div>
+    <input type="hidden" id="wServer">
+    <div class="small" id="wStatus" style="min-height:18px;margin:-4px 2px 10px"></div>
+    <input class="inp" id="wUser" placeholder="Логін" autocapitalize="off" autocomplete="username">
+    <input class="inp" id="wPass" type="password" placeholder="Пароль" autocomplete="current-password">
+    <div class="err" id="wErr"></div>
+    <button class="btn block" id="wLogin">Увійти</button>
+    <button class="btn ghost block hidden" id="wReg" style="margin-top:8px">Створити акаунт</button>
+    <div class="or">або</div>
+    <button class="btn line block" id="wLocal">Працювати без акаунта (дані лише на цьому пристрої)</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <main>
+    <div class="sync"><span id="syncTxt" class="small muted"></span><button id="syncNow" title="Синхронізувати">↻</button></div>
+    <section id="v-today"></section>
+    <section id="v-cal" class="hidden"></section>
+    <section id="v-stats" class="hidden"></section>
+    <section id="v-hist" class="hidden"></section>
+    <section id="v-set" class="hidden"></section>
+  </main>
+  <nav><div class="in">
+    <button data-v="today" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Сьогодні</button>
+    <button data-v="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Календар</button>
+    <button data-v="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Аналіз</button>
+    <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Історія</button>
+    <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>Профіль</button>
+  </div></nav>
+</div>
+
+<script>
+'use strict';
+// ================= constants =================
+const FLOW = [{v:0,t:'Немає',d:'–'},{v:1,t:'Мазання',d:'·'},{v:2,t:'Слабкі',d:'💧'},{v:3,t:'Середні',d:'💧💧'},{v:4,t:'Рясні',d:'💧💧💧'}];
+const SYMPTOMS = ['Спазми','Біль голови','Біль у спині','Чутливість грудей','Здуття','Акне','Нудота','Втома','Безсоння','Тяга до їжі','Діарея','Запор','Запаморочення','Припливи','Біль у суглобах'];
+const MOODS = ['Спокій','Радість','Енергійність','Дратівливість','Тривога','Сум','Перепади настрою','Апатія','Плаксивість','Підвищене лібідо'];
+const DISCHARGE = ['Немає','Липкі','Кремові','Яєчний білок','Водянисті','Незвичні'];
+const SEX = [{v:'none',t:'Не було'},{v:'protected',t:'Захищений'},{v:'unprotected',t:'Незахищений'}];
+const TESTS = [{v:'',t:'Не робила'},{v:'ovu_pos',t:'Овуляція +'},{v:'ovu_neg',t:'Овуляція −'},{v:'preg_pos',t:'Вагітність +'},{v:'preg_neg',t:'Вагітність −'}];
+const PHASE = {
+  menstrual:{t:'Менструальна',c:'',tip:'Відпочинок і відновлення. Тепло, вода, залізо в раціоні.'},
+  follicular:{t:'Фолікулярна',c:'gray',tip:'Енергія зазвичай зростає. Добрий час для навантажень і нових справ.'},
+  fertile:{t:'Фертильне вікно',c:'green',tip:'Найвища ймовірність завагітніти в ці дні.'},
+  ovulation:{t:'Овуляція',c:'green',tip:'Прогнозований день овуляції.'},
+  luteal:{t:'Лютеїнова',c:'gray',tip:'Можливі ПМС-симптоми ближче до кінця фази. Більше сну, менше кофеїну.'},
+  late:{t:'Затримка',c:'amber',tip:'Затримка до 7 днів трапляється часто. Якщо довше або є підозра на вагітність, зроби тест.'},
+};
+const MONTHS = ['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
+const MONTHS_N = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+const MON_A = ['січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
+
+// ================= utils =================
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const localISO = (d=new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const toMs = d => Date.parse(d+'T00:00:00Z');
+const addDays = (d,n) => new Date(toMs(d)+n*864e5).toISOString().slice(0,10);
+const diffDays = (a,b) => Math.round((toMs(b)-toMs(a))/864e5);
+const fmt = d => { if(!d) return '–'; const [,m,dd]=d.split('-').map(Number); return `${dd} ${MONTHS[m-1]}`; };
+const fmtA = d => { if(!d) return '–'; const [,m,dd]=d.split('-').map(Number); return `${dd} ${MON_A[m-1]}`; };
+const fmtShort = d => { if(!d) return '–'; const [,m,dd]=d.split('-').map(Number); return `${dd}.${pad(m)}`; };
+const plural = (n, one, few, many) => { const a=Math.abs(n)%100, b=a%10; return a>10&&a<20?many:b===1?one:b>=2&&b<=4?few:many; };
+const days = n => `${n} ${plural(n,'день','дні','днів')}`;
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.append(t); setTimeout(()=>t.remove(),2400); }
+const DEVICE = (navigator.userAgent.match(/iPhone|iPad|Android|Windows|Macintosh|Linux/)||['web'])[0].replace('Macintosh','Mac');
+function download(name, text, type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.append(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+
+// ================= local store (local-first) =================
+const KEY = 'cycle_v1';
+let DB;
+function loadDB(){
+  try { DB = JSON.parse(localStorage.getItem(KEY)) || null; } catch { DB = null; }
+  DB = Object.assign({ entries:{}, settings:{}, settingsTs:0, settingsDirty:false, dirty:{}, sync:{ server:'', token:'', username:'', seq:0, lastSync:0, lastError:'' }, onboarded:false }, DB||{});
+}
+function saveDB(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e){ toast('Не вдалося зберегти локально: '+e.message); } }
+const entryOf = day => (DB.entries[day] && DB.entries[day].data) || {};
+const entryList = () => Object.entries(DB.entries).filter(([,v])=>v.data && Object.keys(v.data).length).map(([day,v])=>({day,data:v.data})).sort((a,b)=>a.day.localeCompare(b.day));
+function setEntry(day, data){
+  const clean = {}; for (const [k,v] of Object.entries(data)) { if (v===undefined||v===null||v===''||(Array.isArray(v)&&!v.length)) continue; if(k==='flow'&&!v) continue; clean[k]=v; }
+  DB.entries[day] = { data: clean, ts: Date.now() };
+  DB.dirty[day] = true;
+  saveDB(); scheduleSync();
+}
+function setSettings(s){ DB.settings = s; DB.settingsTs = Date.now(); DB.settingsDirty = true; saveDB(); scheduleSync(); }
+const connected = () => !!(DB.sync.server && DB.sync.token);
+
+// ================= sync with server =================
+const base = () => DB.sync.server.replace(/\/+$/,'');
+async function api(path, opts={}){
+  const r = await fetch(base()+path, {...opts, headers:{'Content-Type':'application/json','X-Device':DEVICE, ...(DB.sync.token?{Authorization:'Bearer '+DB.sync.token}:{}), ...(opts.headers||{})}});
+  const j = await r.json().catch(()=>({}));
+  if (r.status===401 && DB.sync.token){ DB.sync.token=''; DB.sync.lastError='Сесія завершилась, увійди знову'; saveDB(); renderSync(); }
+  if (!r.ok) throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+let syncing=false, again=false, syncTimer=null;
+function scheduleSync(ms=1200){ clearTimeout(syncTimer); if (connected()) syncTimer=setTimeout(sync, ms); renderSync(); }
+async function sync(opts={}){
+  if (!connected()) return;
+  if (syncing){ again=true; return; }
+  syncing=true; renderSync();
+  try {
+    const sent = Object.keys(DB.dirty).map(day => ({ day, data: entryOf(day), ts: (DB.entries[day]||{}).ts || Date.now() }));
+    const body = { since: DB.sync.seq, changes: sent };
+    if (DB.settingsDirty) Object.assign(body, { settings: DB.settings, settingsTs: DB.settingsTs });
+    if (opts.import) body.import = true;
+    const r = await api('/api/sync', { method:'POST', body: JSON.stringify(body) });
+    // clear dirty flags only for changes that weren't edited again while in flight
+    for (const c of sent) if ((DB.entries[c.day]||{}).ts === c.ts) delete DB.dirty[c.day];
+    if (DB.settingsDirty && r.settingsTs >= DB.settingsTs) DB.settingsDirty = false;
+    for (const e of r.entries){
+      const local = DB.entries[e.day];
+      if (DB.dirty[e.day] && local && local.ts > e.ts) continue; // our newer local edit wins
+      if (e.data) DB.entries[e.day] = { data: e.data, ts: e.ts }; else delete DB.entries[e.day];
+    }
+    if (!DB.settingsDirty && r.settingsTs > DB.settingsTs){ DB.settings = r.settings; DB.settingsTs = r.settingsTs; }
+    // drop local tombstones that the server already has
+    for (const [d,v] of Object.entries(DB.entries)) if (!DB.dirty[d] && (!v.data || !Object.keys(v.data).length)) delete DB.entries[d];
+    DB.sync.seq = r.seq; DB.sync.lastSync = Date.now(); DB.sync.lastError = ''; DB.sync.username = r.username;
+    saveDB(); if (!opts.quiet && view!=='hist') render();
+  } catch(e){
+    DB.sync.lastError = navigator.onLine ? e.message : 'офлайн'; saveDB();
+  } finally {
+    syncing=false; renderSync();
+    if (again){ again=false; sync(); }
+  }
+}
+function renderSync(){
+  const n = Object.keys(DB.dirty).length + (DB.settingsDirty?1:0), el=$('#syncTxt');
+  if (!el) return;
+  $('#syncNow').classList.toggle('hidden', !connected());
+  if (!DB.sync.server){ el.textContent = 'Лише на цьому пристрої'; return; }
+  if (!DB.sync.token){ el.innerHTML = '<span class="status-bad">⚠ Не увійдено</span>'; return; }
+  if (!DB.sync.token){ el.innerHTML = '<span class="status-bad">⚠ Не увійдено на сервер</span>'; return; }
+  if (syncing){ el.textContent = 'Синхронізую…'; return; }
+  if (DB.sync.lastError){ el.innerHTML = `<span class="status-bad">⚠ ${esc(DB.sync.lastError)}</span>${n?` · ${n} в черзі`:''}`; return; }
+  if (n){ el.textContent = `⏳ ${n} ${plural(n,'зміна','зміни','змін')} в черзі`; return; }
+  el.innerHTML = DB.sync.lastSync ? `<span class="status-ok">✓</span> синхронізовано ${new Date(DB.sync.lastSync).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'})}` : '';
+}
+addEventListener('online', ()=>sync());
+document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible'){ sync(); render(); } });
+setInterval(()=>sync(), 5*60e3);
+
+// ================= connect / login (like SetFlow) =================
+const SERVER = 'https://macmini.tailf4703b.ts.net:8443';
+function defaultServer(){
+  // Opened from the server itself -> same origin; otherwise (GitHub Pages) the fixed home server.
+  return /github\.io$/.test(location.hostname) || location.protocol==='file:' || /^(localhost|127\.)/.test(location.hostname) && location.port!=='8790' ? SERVER : location.origin;
+}
+async function checkServer(url, out, regBtn){
+  out.className='small muted'; out.textContent = url ? 'Перевіряю…' : '';
+  if (!url) return false;
+  try {
+    const r = await fetch(url.replace(/\/+$/,'')+'/api/health'); const j = await r.json();
+    if (j.app!=='cycle') throw 0;
+    out.className='small status-ok'; out.textContent='✓ Сервер доступний';
+    if (regBtn) regBtn.classList.toggle('hidden', !j.signup);
+    return true;
+  } catch { out.className='small status-bad'; out.textContent='✗ Сервер недоступний'; if(regBtn) regBtn.classList.add('hidden'); return false; }
+}
+async function doLogin(server, user, pass, register){
+  const url = server.trim().replace(/\/+$/,'');
+  if (!/^https?:\/\//.test(url)) throw new Error('Адреса має починатися з https://');
+  const r = await fetch(url + (register?'/api/register':'/api/login'), { method:'POST', headers:{'Content-Type':'application/json','X-Device':DEVICE}, body: JSON.stringify({username:user, password:pass}) });
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.error || 'HTTP '+r.status);
+  const sameAccount = DB.sync.username === j.username && DB.sync.server === url;
+  DB.sync = { server:url, token:j.token, username:j.username, seq: sameAccount ? DB.sync.seq : 0, lastSync:0, lastError:'' };
+  // everything already on this device goes up to the server (server keeps the newer version per day)
+  if (!sameAccount){ for (const d of Object.keys(DB.entries)) DB.dirty[d]=true; if (DB.settingsTs) DB.settingsDirty=true; }
+  DB.onboarded = true; saveDB();
+  await sync();
+}
+function bindLoginForm(prefix){
+  const srv=$(`#${prefix}Server`), st=$(`#${prefix}Status`), reg=$(`#${prefix}Reg`), err=$(`#${prefix}Err`);
+  let t; srv.oninput = () => { clearTimeout(t); t=setTimeout(()=>checkServer(srv.value.trim(), st, reg), 500); };
+  if (srv.value) checkServer(srv.value.trim(), st, reg);
+  const go = register => async () => {
+    err.textContent='';
+    const btn = register?reg:$(`#${prefix}Login`); btn.disabled=true;
+    try { await doLogin(srv.value, $(`#${prefix}User`).value.trim(), $(`#${prefix}Pass`).value, register); showApp(); toast('Підключено'); }
+    catch(e){ err.textContent = e.message==='Failed to fetch' ? 'Немає зв\'язку з сервером' : e.message; }
+    finally { btn.disabled=false; }
+  };
+  $(`#${prefix}Login`).onclick = go(false); reg.onclick = go(true);
+  $(`#${prefix}Pass`).onkeydown = e => { if (e.key==='Enter') go(false)(); };
+}
+function showWelcome(){ $('#app').classList.add('hidden'); $('#welcome').classList.remove('hidden'); $('#wServer').value = defaultServer(); bindLoginForm('w'); }
+function showApp(){ $('#welcome').classList.add('hidden'); $('#app').classList.remove('hidden'); render(); }
+$('#wLocal').onclick = () => { DB.onboarded = true; saveDB(); showApp(); };
+$('#syncNow').onclick = () => sync();
+
+// ================= cycle math (runs on device) =================
+function computeStats(entries, settings, today){
+  const bleed = entries.filter(e => (e.data.flow||0) >= 1).map(e => ({day:e.day, flow:e.data.flow}));
+  const periods = [];
+  for (const b of bleed){
+    const last = periods[periods.length-1];
+    if (last && diffDays(last.end, b.day) <= 2){ last.end=b.day; if (b.flow>=2) last.real=true; }
+    else periods.push({start:b.day, end:b.day, real:b.flow>=2});
+  }
+  const real = periods.filter(p=>p.real).map(p=>({start:p.start, end:p.end, length:diffDays(p.start,p.end)+1}));
+  const cycles = [];
+  for (let i=1;i<real.length;i++) cycles.push({start:real[i-1].start, length:diffDays(real[i-1].start, real[i].start)});
+  const luteal = +settings.lutealLength || 14;
+  const recent = cycles.filter(c=>c.length>=15&&c.length<=60).slice(-6);
+  const avg = a => a.reduce((s,x)=>s+x,0)/a.length;
+  const cycleLen = recent.length ? Math.round(avg(recent.map(c=>c.length))) : (+settings.cycleLength||28);
+  const periodLen = real.length ? Math.round(avg(real.slice(-6).map(p=>p.length))) : (+settings.periodLength||5);
+  const sd = recent.length>=3 ? Math.sqrt(avg(recent.map(c=>(c.length-cycleLen)**2))) : null;
+  const res = { periods:real, cycles, cycleLen, periodLen, sd, irregular: sd!==null && sd>7, luteal };
+  const last = real[real.length-1];
+  if (!last) return {...res, empty:true};
+  const nextStart = addDays(last.start, cycleLen);
+  const cycleDay = diffDays(last.start, today)+1;
+  const late = today > nextStart ? diffDays(nextStart, today) : 0;
+  const ovulation = addDays(nextStart, -luteal);
+  const fertileStart = addDays(ovulation,-5), fertileEnd = addDays(ovulation,1);
+  let phase;
+  if (today>=last.start && (today<=last.end || (cycleDay<=periodLen && diffDays(last.end,today)<=1))) phase='menstrual';
+  else if (today>=fertileStart && today<=fertileEnd) phase = today===ovulation?'ovulation':'fertile';
+  else if (today<fertileStart) phase='follicular'; else phase='luteal';
+  if (late>0) phase='late';
+  const predicted = [];
+  for (let i=0;i<6;i++){ const s=addDays(nextStart,i*cycleLen), ov=addDays(s,-luteal); predicted.push({start:s,end:addDays(s,periodLen-1),ovulation:ov,fertileStart:addDays(ov,-5),fertileEnd:addDays(ov,1)}); }
+  return {...res, last, cycleDay, nextStart, daysToNext:diffDays(today,nextStart), late, phase, current:{start:last.start, ovulation, fertileStart, fertileEnd}, predicted};
+}
+
+// ================= render =================
+let view='today', calMonth=null, ST, TODAY;
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => { view=b.dataset.v; render(); scrollTo(0,0); });
+function render(){
+  if ($('#app').classList.contains('hidden')) return;
+  TODAY = localISO(); ST = computeStats(entryList(), DB.settings, TODAY);
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===view));
+  for (const v of ['today','cal','stats','hist','set']) $('#v-'+v).classList.toggle('hidden', v!==view);
+  ({today:renderToday, cal:renderCal, stats:renderStats, hist:renderHist, set:renderSet})[view]();
+  renderSync();
+}
+function markPeriod(start, n, flow=3){
+  for (let i=0;i<n;i++){ const d=addDays(start,i); const e=entryOf(d); if ((e.flow||0)<flow) setEntry(d, {...e, flow}); }
+}
+
+function ringSVG(st){
+  const L=st.cycleLen, R=62, cx=75, cy=75, out=[], ovuDay=L-st.luteal+1;
+  const cur = Math.min(st.cycleDay, L+(st.late||0)), N=Math.max(L,cur);
+  for (let i=1;i<=N;i++){
+    const a=-Math.PI/2+(i-1)/N*2*Math.PI, x=cx+R*Math.cos(a), y=cy+R*Math.sin(a);
+    let fill='var(--line)';
+    if (i<=st.periodLen) fill='var(--rose)';
+    else if (i>=ovuDay-5 && i<=ovuDay+1) fill = i===ovuDay?'var(--green)':'color-mix(in srgb,var(--green) 45%,transparent)';
+    if (i>L) fill='var(--amber)';
+    out.push(i===cur ? `<circle cx="${x}" cy="${y}" r="9" style="fill:${fill};stroke:var(--card);stroke-width:3"/>` : `<circle cx="${x}" cy="${y}" r="3.6" style="fill:${fill}"/>`);
+  }
+  return `<svg viewBox="0 0 150 150" width="150" height="150">${out.join('')}</svg>`;
+}
+
+// ---------- TODAY ----------
+function renderToday(){
+  const st=ST, today=TODAY, e=entryOf(today), el=$('#v-today');
+  if (st.empty){
+    el.innerHTML = `<h1>Привіт 👋</h1>
+      <div class="card"><h3 style="margin:0 0 6px">Почнімо з останніх місячних</h3>
+      <p class="muted" style="margin:0 0 14px">Вкажи дату початку, і я порахую прогноз.</p>
+      <input type="date" class="inp" id="firstDate" max="${today}" value="${today}">
+      <div class="row-set"><span>Скільки днів тривали</span><input type="number" id="firstLen" min="1" max="10" value="5" class="inp"></div>
+      <button class="btn block" id="firstSave" style="margin-top:10px">Зберегти</button></div>
+      ${connected()?'':`<div class="card"><b>Синхронізація</b><p class="muted small" style="margin:4px 0 10px">Увійди в акаунт, щоб дані зберігались з історією і були на всіх пристроях.</p><button class="btn ghost block" id="goSet">Увійти</button></div>`}`;
+    $('#firstSave').onclick = () => { const start=$('#firstDate').value, len=Math.min(10,Math.max(1,+$('#firstLen').value||5)); markPeriod(start, Math.min(len, diffDays(start,today)+1)); render(); };
+    if ($('#goSet')) $('#goSet').onclick = () => { view='set'; render(); };
+    return;
+  }
+  const ph = PHASE[st.phase]||PHASE.luteal;
+  let headline, sub = ph.tip;
+  if (st.phase==='menstrual'){ headline=`День ${st.cycleDay} місячних`; sub='Подбай про себе: тепло, вода, відпочинок.'; }
+  else if (st.late>0) headline=`Затримка ${days(st.late)}`;
+  else if (st.daysToNext===0){ headline='Місячні очікуються сьогодні'; sub='Познач, коли почнуться.'; }
+  else headline=`${days(st.daysToNext)} до очікуваних місячних`;
+  const inPeriod = st.phase==='menstrual', logged=summarize(e), ovuPast=st.current.ovulation<today;
+  const ok = (v,a,b) => v>=a&&v<=b;
+  el.innerHTML = `
+    ${st.irregular?`<div class="notice">Цикл нерегулярний (розкид ±${Math.round(st.sd)} дн.), прогноз менш точний.</div>`:''}
+    <div class="card">
+      <div class="hero">
+        <div class="ring">${ringSVG(st)}<div class="c"><span class="muted small">День циклу</span><b>${st.cycleDay}</b><span class="muted small">з ${st.cycleLen}</span></div></div>
+        <div><span class="pill ${ph.c}">${ph.t}</span><h3>${headline}</h3><div class="muted small">${esc(sub)}</div></div>
+      </div>
+      <div class="timeline">
+        <div><div class="dot" style="background:var(--rose);box-shadow:0 0 0 4px var(--rose-soft)"></div><div class="lbl">Останні місячні</div><div class="val">${fmtA(st.last.start)}</div></div>
+        <div><div class="dot" style="background:var(--green);opacity:${ovuPast?.45:1}"></div><div class="lbl">Овуляція</div><div class="val">${fmtA(st.current.ovulation)}</div></div>
+        <div><div class="dot" style="background:var(--rose-soft);border:2px dashed var(--rose)"></div><div class="lbl">Очікувані</div><div class="val">${fmtA(st.nextStart)}</div></div>
+      </div>
+      <div class="actions">
+        ${inPeriod ? (e.flow?'':`<button class="btn" id="dayP">Місячні тривають</button>`) : `<button class="btn" id="startP">Почалися місячні</button>`}
+        <button class="btn ${inPeriod&&e.flow?'':'ghost'}" id="logToday">${logged.length?'Змінити запис':'Записати сьогодні'}</button>
+      </div>
+    </div>
+    ${logged.length?`<div class="card"><div class="muted small">СЬОГОДНІ ЗАПИСАНО</div><div class="chiprow">${logged.map(x=>`<span>${esc(x)}</span>`).join('')}</div></div>`:''}
+    <h2>Мій цикл</h2>
+    <div class="grid2">
+      <div class="card stat"><div class="k">Тривалість місячних</div><div class="v">${days(st.periodLen)}</div><div class="small ${ok(st.periodLen,2,7)?'muted':''}" style="${ok(st.periodLen,2,7)?'':'color:var(--amber)'}">${ok(st.periodLen,2,7)?'✓ 2–7 днів типово':'⚠ поза типовим 2–7'}</div></div>
+      <div class="card stat"><div class="k">Тривалість циклу</div><div class="v">${days(st.cycleLen)}</div><div class="small ${ok(st.cycleLen,21,35)?'muted':''}" style="${ok(st.cycleLen,21,35)?'':'color:var(--amber)'}">${ok(st.cycleLen,21,35)?'✓ 21–35 днів типово':'⚠ поза типовим 21–35'}</div></div>
+      <div class="card stat"><div class="k">Фертильне вікно</div><div class="v" style="font-size:20px">${fmtShort(st.current.fertileStart)} – ${fmtShort(st.current.fertileEnd)}</div><div class="small muted">прогноз</div></div>
+      <div class="card stat"><div class="k">Регулярність</div><div class="v" style="font-size:20px">${st.sd===null?'мало даних':st.sd<=3?'Регулярний':st.sd<=7?'Помірна':'Нерегулярний'}</div><div class="small muted">${st.cycles.length} ${plural(st.cycles.length,'цикл','цикли','циклів')} в історії</div></div>
+    </div>
+    <p class="muted small" style="margin:12px 4px">Прогнози є оцінкою і не підходять як метод контрацепції.</p>`;
+  $('#logToday').onclick = () => openSheet(today);
+  if ($('#startP')) $('#startP').onclick = () => { markPeriod(today,1); toast('Записано початок місячних'); render(); };
+  if ($('#dayP')) $('#dayP').onclick = () => { setEntry(today, {...e, flow:3}); toast('Записано'); render(); };
+}
+function summarize(e){
+  const out=[];
+  if (e.flow) out.push('Виділення: '+FLOW[e.flow].t.toLowerCase());
+  if (e.pain) out.push('Біль '+e.pain+'/10');
+  (e.symptoms||[]).forEach(s=>out.push(s)); (e.mood||[]).forEach(s=>out.push(s));
+  if (e.energy) out.push('Енергія '+e.energy+'/5');
+  if (e.discharge) out.push('Виділення: '+e.discharge.toLowerCase());
+  if (e.temp) out.push(e.temp+' °C'); if (e.weight) out.push(e.weight+' кг');
+  if (e.sex && e.sex!=='none') out.push('Секс: '+SEX.find(x=>x.v===e.sex).t.toLowerCase());
+  if (e.test) out.push(TESTS.find(x=>x.v===e.test).t);
+  if (e.pill) out.push('Таблетка ✓'); if (e.meds) out.push('Ліки: '+e.meds);
+  if (e.note) out.push('📝 '+e.note.slice(0,40));
+  return out;
+}
+
+// ---------- CALENDAR ----------
+function dayClass(d){
+  const e=entryOf(d), st=ST, cls=[];
+  if (e.flow) cls.push('p'+e.flow);
+  if (Object.keys(e).some(k=>k!=='flow')) cls.push('has');
+  if (!st.empty){
+    const cs=[...st.predicted]; if (d>=TODAY) cs.unshift({...st.current, start:null});
+    for (const c of cs){
+      if (!e.flow && c.start && d>=c.start && d<=c.end && d>=TODAY) cls.push('pred');
+      if (!e.flow && d>=c.fertileStart && d<=c.fertileEnd) cls.push('fert');
+      if (d===c.ovulation) cls.push('ovu');
+    }
+    for (const p of st.periods){ if (d===addDays(p.start,-st.luteal) && d<TODAY) cls.push('ovu'); }
+  }
+  if (d===TODAY) cls.push('today');
+  return cls.join(' ');
+}
+function renderCal(){
+  if (!calMonth){ const t=new Date(); calMonth=[t.getFullYear(), t.getMonth()]; }
+  const [y,m]=calMonth, startW=(new Date(y,m,1).getDay()+6)%7, n=new Date(y,m+1,0).getDate();
+  let cells=['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(w=>`<div class="wd">${w}</div>`).join('');
+  for (let i=0;i<startW;i++){ const d=localISO(new Date(y,m,1-startW+i)); cells+=`<button class="d out ${dayClass(d)}" data-d="${d}">${+d.slice(8)}</button>`; }
+  for (let i=1;i<=n;i++){ const d=`${y}-${pad(m+1)}-${pad(i)}`; cells+=`<button class="d ${dayClass(d)}" data-d="${d}">${i}</button>`; }
+  $('#v-cal').innerHTML = `<h1>Календар</h1><div class="card">
+    <div class="cal-head"><button id="pm">‹</button><b>${MONTHS_N[m]} ${y}</b><button id="nm">›</button></div>
+    <div class="cal">${cells}</div>
+    <div class="legend"><span><i style="background:var(--rose)"></i>Місячні</span><span><i style="border:2px dashed var(--rose)"></i>Прогноз</span><span><i style="background:var(--green-soft)"></i>Фертильні</span><span><i style="border:2px solid var(--green)"></i>Овуляція</span><span><i style="background:var(--muted);width:6px;height:6px"></i>Є нотатки</span></div>
+  </div><p class="muted small" style="margin:4px">Натисни на день, щоб записати або змінити дані.</p>`;
+  $('#pm').onclick=()=>{ calMonth = m===0?[y-1,11]:[y,m-1]; renderCal(); };
+  $('#nm').onclick=()=>{ calMonth = m===11?[y+1,0]:[y,m+1]; renderCal(); };
+  document.querySelectorAll('.cal .d').forEach(b=>b.onclick=()=>{ if(b.dataset.d>TODAY) return toast('Це майбутній день'); openSheet(b.dataset.d); });
+}
+
+// ---------- LOG SHEET ----------
+function openSheet(day){
+  const e = JSON.parse(JSON.stringify(entryOf(day))), custom = DB.settings.customSymptoms||[];
+  const bd=document.createElement('div'); bd.className='backdrop';
+  const single = (key, list, cls='') => `<div class="opts ${cls}" data-single="${key}">${list.map(o=>`<button class="opt ${String(e[key]??(key==='flow'?0:''))===String(o.v)?'on':''}" data-v="${esc(o.v)}">${o.d!==undefined?`<span class="drops">${o.d}</span>`:''}${esc(o.t)}</button>`).join('')}</div>`;
+  const multi = (key, list) => `<div class="opts" data-multi="${key}">${list.map(o=>`<button class="opt ${(e[key]||[]).includes(o)?'on':''}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+  bd.innerHTML = `<div class="sheet" role="dialog">
+    <div class="grab"></div>
+    <div class="sheet-head"><button class="btn line" data-x>Скасувати</button><b>${day===TODAY?'Сьогодні':fmt(day)}</b><button class="btn" data-save>Зберегти</button></div>
+    <div class="sec"><div class="t">Виділення</div>${single('flow', FLOW, 'flow')}</div>
+    <div class="sec"><div class="t">Біль: <span id="painV">${e.pain||0}</span>/10</div><input type="range" min="0" max="10" value="${e.pain||0}" id="pain"></div>
+    <div class="sec"><div class="t">Симптоми</div>${multi('symptoms',[...SYMPTOMS,...custom])}</div>
+    <div class="sec"><div class="t">Настрій</div>${multi('mood',MOODS)}</div>
+    <div class="sec"><div class="t">Енергія</div>${single('energy',[1,2,3,4,5].map(v=>({v,t:['Виснажена','Низька','Нормальна','Добра','Висока'][v-1]})))}</div>
+    <div class="sec"><div class="t">Вагінальні виділення</div>${single('discharge',DISCHARGE.map(v=>({v,t:v})))}</div>
+    <div class="sec"><div class="t">Секс</div>${single('sex',SEX)}</div>
+    <div class="sec"><div class="t">Тест</div>${single('test',TESTS)}</div>
+    <div class="sec"><div class="t">Вимірювання</div><div class="field">
+      <input type="number" step="0.01" min="34" max="43" inputmode="decimal" placeholder="Базальна t °C" id="temp" value="${e.temp??''}">
+      <input type="number" step="0.1" min="20" max="400" inputmode="decimal" placeholder="Вага, кг" id="weight" value="${e.weight??''}"></div></div>
+    <div class="sec"><label class="switch">Прийняла таблетку (контрацепція)<input type="checkbox" id="pill" ${e.pill?'checked':''}></label></div>
+    <div class="sec"><div class="t">Ліки</div><input class="inp" id="meds" maxlength="300" placeholder="Напр. ібупрофен 400" value="${esc(e.meds||'')}"></div>
+    <div class="sec"><div class="t">Нотатка</div><textarea id="note" maxlength="2000" placeholder="Як почуваєшся?">${esc(e.note||'')}</textarea></div>
+    ${Object.keys(e).length?'<button class="btn line block" data-clear>Очистити день</button>':''}
+  </div>`;
+  document.body.append(bd); document.body.style.overflow='hidden';
+  const close=()=>{ bd.remove(); document.body.style.overflow=''; };
+  bd.addEventListener('click', ev=>{
+    if (ev.target===bd || ev.target.closest('[data-x]')) return close();
+    const o=ev.target.closest('.opt'); if(!o) return;
+    const s=o.parentElement.dataset.single, mu=o.parentElement.dataset.multi;
+    if (s){ const was=o.classList.contains('on'); o.parentElement.querySelectorAll('.opt').forEach(x=>x.classList.remove('on')); if(!was||s==='flow') o.classList.add('on'); }
+    if (mu) o.classList.toggle('on');
+  });
+  bd.querySelector('#pain').oninput = ev => bd.querySelector('#painV').textContent=ev.target.value;
+  const collect = () => {
+    const d={};
+    bd.querySelectorAll('[data-single]').forEach(g=>{ const on=g.querySelector('.on'); if(!on) return; const k=g.dataset.single; let v=on.dataset.v; if(k==='flow'||k==='energy') v=+v;
+      if ((k==='discharge'&&v==='Немає')||(k==='test'&&v==='')||(k==='sex'&&v==='none')) return; d[k]=v; });
+    bd.querySelectorAll('[data-multi]').forEach(g=>{ const v=[...g.querySelectorAll('.on')].map(x=>x.dataset.v); if(v.length) d[g.dataset.multi]=v; });
+    const pain=+bd.querySelector('#pain').value; if(pain) d.pain=pain;
+    const t=parseFloat(bd.querySelector('#temp').value); if(t>34&&t<43) d.temp=t;
+    const w=parseFloat(bd.querySelector('#weight').value); if(w>20&&w<400) d.weight=w;
+    if (bd.querySelector('#pill').checked) d.pill=true;
+    const meds=bd.querySelector('#meds').value.trim(); if(meds) d.meds=meds;
+    const note=bd.querySelector('#note').value.trim(); if(note) d.note=note;
+    return d;
+  };
+  bd.querySelector('[data-save]').onclick = () => { setEntry(day, collect()); close(); render(); toast('Збережено'); };
+  const clr=bd.querySelector('[data-clear]'); if (clr) clr.onclick = () => { if(confirm('Очистити всі дані за цей день?')){ setEntry(day,{}); close(); render(); } };
+}
+
+// ---------- ANALYSIS ----------
+function renderStats(){
+  const st=ST, el=$('#v-stats');
+  if (st.empty || !st.cycles.length){ el.innerHTML=`<h1>Аналіз</h1><div class="card muted">Потрібно хоча б два записаних початки місячних, щоб побачити статистику циклів.</div>`; return; }
+  const cyc=st.cycles.slice(-12), max=Math.max(...cyc.map(c=>c.length), st.cycleLen);
+  const periodOf = s => (st.periods.find(p=>p.start===s)||{}).length||0;
+  const bars = cyc.map(c=>{ const pl=periodOf(c.start); return `<div class="row"><span class="muted">${fmtShort(c.start)}</span><div class="track" style="width:${c.length/max*100}%"><div class="pp" style="width:${pl/c.length*100}%"></div><div class="rest" style="flex:1"></div></div><b>${c.length}</b></div>`; }).join('');
+  const lens=st.cycles.map(c=>c.length), counts={}, phaseCount={};
+  const list=entryList();
+  for (const en of list){
+    const p=[...st.periods].reverse().find(p=>p.start<=en.day); if(!p) continue;
+    const cd=diffDays(p.start,en.day)+1, ov=st.cycleLen-st.luteal+1;
+    const ph = cd<=st.periodLen?'Менструальна':cd<ov-5?'Фолікулярна':cd<=ov+1?'Овуляторна':'Лютеїнова';
+    for (const s of [...(en.data.symptoms||[]),...(en.data.mood||[])]){ counts[s]=(counts[s]||0)+1; (phaseCount[s] ||= {})[ph]=(phaseCount[s][ph]||0)+1; }
+  }
+  const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const pains=list.filter(e=>e.data.pain).map(e=>e.data.pain);
+  el.innerHTML=`<h1>Аналіз</h1>
+    <div class="grid2">
+      <div class="card stat"><div class="k">Середній цикл</div><div class="v">${st.cycleLen}</div><div class="small muted">мін ${Math.min(...lens)} / макс ${Math.max(...lens)}</div></div>
+      <div class="card stat"><div class="k">Середні місячні</div><div class="v">${st.periodLen}</div><div class="small muted">днів</div></div>
+      <div class="card stat"><div class="k">Розкид циклу</div><div class="v">${st.sd===null?'–':'±'+st.sd.toFixed(1)}</div><div class="small muted">${st.sd===null?'потрібно 3+ цикли':'днів, стандартне відхилення'}</div></div>
+      <div class="card stat"><div class="k">Середній біль</div><div class="v">${pains.length?(pains.reduce((a,b)=>a+b,0)/pains.length).toFixed(1):'–'}</div><div class="small muted">з 10, коли записано</div></div>
+    </div>
+    <h2>Цикли</h2><div class="card bars">${bars}<div class="legend"><span><i style="background:var(--rose)"></i>Місячні</span><span><i style="background:var(--rose-soft)"></i>Решта циклу</span></div></div>
+    <h2>Що повторюється</h2><div class="card freq">${top.length?top.map(([s,n])=>{ const best=Object.entries(phaseCount[s]).sort((a,b)=>b[1]-a[1])[0]; return `<div class="row"><span>${esc(s)}</span><span class="muted">${n}× · найчастіше: ${best[0].toLowerCase()}</span></div>`; }).join(''):'<div class="muted">Записуй симптоми, і тут з\'являться закономірності.</div>'}</div>`;
+}
+
+// ---------- HISTORY (server) ----------
+const ACT={create:['＋','Додано'],update:['✎','Змінено'],delete:['✕','Видалено'],import:['⇣','Імпорт'],restore:['↺','Відновлено']};
+function diffText(a,b){
+  a=a||{}; b=b||{}; const out=[];
+  const show=(k,v)=>v===undefined?'–':k==='flow'?FLOW[v].t:k==='test'?(TESTS.find(x=>x.v===v)||{t:v}).t:k==='sex'?(SEX.find(x=>x.v===v)||{t:v}).t:Array.isArray(v)?v.join(', '):v===true?'так':String(v);
+  const name={flow:'виділення',pain:'біль',symptoms:'симптоми',mood:'настрій',energy:'енергія',discharge:'вид. виділення',temp:'t°',weight:'вага',sex:'секс',test:'тест',pill:'таблетка',meds:'ліки',note:'нотатка'};
+  for (const k of new Set([...Object.keys(a),...Object.keys(b)])) if (JSON.stringify(a[k])!==JSON.stringify(b[k])) out.push(`${name[k]||k}: ${show(k,a[k])} → ${show(k,b[k])}`);
+  return out.join(' · ');
+}
+async function renderHist(){
+  const el=$('#v-hist');
+  if (!connected()){ el.innerHTML=`<h1>Історія змін</h1><div class="card"><p class="muted" style="margin-top:0">Історія всіх змін зберігається на сервері. Увійди в Профілі, і тут з'явиться журнал з можливістю відкотити будь-яку зміну.</p><button class="btn ghost block" id="goSet2">Увійти</button></div>`; $('#goSet2').onclick=()=>{view='set';render();}; return; }
+  el.innerHTML='<h1>Історія змін</h1><div class="card muted">Завантажую…</div>';
+  if (Object.keys(DB.dirty).length) await sync({quiet:true});
+  let rows; try { rows=await api('/api/history?limit=300'); } catch(e){ el.innerHTML=`<h1>Історія змін</h1><div class="card status-bad">Не вдалося завантажити: ${esc(e.message)}</div>`; return; }
+  // group a burst of identical edits (e.g. "5 days of period") into one line
+  const groups=[];
+  for (const r of rows){
+    const g=groups[groups.length-1];
+    if (g && g.action===r.action && g.at.slice(0,16)===r.at.slice(0,16) && JSON.stringify(g.after)===JSON.stringify(r.after) && JSON.stringify(g.before)===JSON.stringify(r.before)) g.days.push(r.day);
+    else groups.push({...r, days:[r.day]});
+  }
+  if (view!=='hist') return;
+  el.innerHTML=`<h1>Історія змін</h1><p class="muted small" style="margin:-8px 4px 12px">Кожна зміна з усіх пристроїв зберігається на сервері. Будь-яку можна відкотити.</p>
+  <div class="card">${groups.length?groups.map(r=>{ const [ic,t]=ACT[r.action]||['•',r.action]; const when=new Date(r.at.replace(' ','T')+'Z');
+    const ds=r.days.length>1?`${fmt(r.days[r.days.length-1])} – ${fmt(r.days[0])}`:fmt(r.day);
+    return `<div class="hist"><div class="ic">${ic}</div><div class="b"><div><b>${t}</b> · ${ds}</div>
+      <div class="chg">${esc(diffText(r.before,r.after).slice(0,300))}</div>
+      <div class="small muted">${when.toLocaleString('uk-UA',{dateStyle:'medium',timeStyle:'short'})}${r.device?' · '+esc(r.device):''}</div></div>
+      ${r.days.length===1?`<button class="btn line" style="padding:6px 12px;font-size:13px;align-self:center" data-r="${r.id}" title="Відкотити">↺</button>`:''}</div>`; }).join(''):'<div class="muted">Поки порожньо</div>'}</div>`;
+  el.querySelectorAll('[data-r]').forEach(b=>b.onclick=async()=>{ if(!confirm('Повернути цей день до стану перед цією зміною?')) return; try{ await api(`/api/history/${b.dataset.r}/restore`,{method:'POST',body:'{}'}); await sync(); toast('Відновлено'); renderHist(); }catch(e){ toast(e.message); } });
+}
+
+// ---------- PROFILE / SETTINGS ----------
+function renderSet(){
+  const s=DB.settings, sy=DB.sync;
+  const acct = connected()
+    ? `<div class="row-set"><span class="muted">Акаунт</span><b>${esc(sy.username)}</b></div>
+       <div class="row-set"><span class="muted">Остання синхронізація</span><span>${sy.lastSync?new Date(sy.lastSync).toLocaleString('uk-UA',{dateStyle:'short',timeStyle:'short'}):'–'}</span></div>
+       <div style="display:grid;gap:8px;margin-top:12px"><button class="btn block" id="sSync">Синхронізувати зараз</button><button class="btn line block" id="sOut">Вийти з акаунта</button></div>`
+    : `<p class="muted small" style="margin:0 0 10px">${sy.server&&!sy.token?'Сесія завершилась, увійди знову.':'Дані зараз тільки на цьому пристрої. Увійди, щоб мати історію змін і синхронізацію між пристроями.'}</p>
+       <input type="hidden" id="pServer" value="${esc(defaultServer())}">
+       <div class="small" id="pStatus" style="min-height:18px;margin:-4px 2px 10px"></div>
+       <input class="inp" id="pUser" placeholder="Логін" autocapitalize="off" autocomplete="username" value="${esc(sy.username||'')}" style="margin-bottom:10px">
+       <input class="inp" id="pPass" type="password" placeholder="Пароль" autocomplete="current-password" style="margin-bottom:6px">
+       <div class="err" id="pErr"></div>
+       <button class="btn block" id="pLogin">Увійти</button>
+       <button class="btn ghost block hidden" id="pReg" style="margin-top:8px">Створити акаунт</button>`;
+  $('#v-set').innerHTML=`<h1>Профіль</h1>
+  <h2 style="margin-top:0">Акаунт</h2><div class="card">${acct}</div>
+  <h2>Параметри прогнозу</h2>
+  <div class="card"><p class="muted small" style="margin:0 0 6px">Використовуються, поки в історії мало циклів. Далі прогноз рахується з твоїх даних.</p>
+    <div class="row-set"><span>Тривалість циклу</span><input type="number" class="inp" id="sCycle" min="15" max="60" value="${s.cycleLength||28}"></div>
+    <div class="row-set"><span>Тривалість місячних</span><input type="number" class="inp" id="sPeriod" min="1" max="12" value="${s.periodLength||5}"></div>
+    <div class="row-set"><span>Лютеїнова фаза</span><input type="number" class="inp" id="sLut" min="9" max="18" value="${s.lutealLength||14}"></div>
+    <div style="margin-top:10px"><div class="muted small">Свої симптоми (через кому)</div><input class="inp" id="sCustom" value="${esc((s.customSymptoms||[]).join(', '))}" placeholder="напр. Мігрень з аурою"></div>
+    <button class="btn block" id="sSave" style="margin-top:12px">Зберегти</button></div>
+  <h2>Дані</h2>
+  <div class="card" style="display:grid;gap:8px">
+    <button class="btn ghost block" id="report">📄 Звіт для лікаря (друк / PDF)</button>
+    <button class="btn line block" id="expCsv">Експорт CSV</button>
+    <button class="btn line block" id="expJson">Експорт JSON (повний бекап)</button>
+    <label class="btn line block">Імпорт JSON<input type="file" accept=".json,application/json" id="imp" hidden></label>
+    <button class="btn line block" id="wipe" style="color:var(--rose-2)">Стерти дані з цього пристрою</button>
+  </div>
+  <p class="muted small" style="margin:4px">Застосунок не є медичним виробом. Прогнози не замінюють консультацію лікаря і не є методом контрацепції.</p>`;
+  if (connected()){
+    $('#sSync').onclick=()=>sync().then(()=>toast(DB.sync.lastError?'Помилка: '+DB.sync.lastError:'Синхронізовано'));
+    $('#sOut').onclick=async()=>{ if(!confirm('Вийти з акаунта? Дані залишаться на цьому пристрої.')) return; await sync(); await api('/api/logout',{method:'POST',body:'{}'}).catch(()=>{}); DB.sync.token=''; saveDB(); render(); };
+  } else bindLoginForm('p');
+  $('#sSave').onclick=()=>{ setSettings({cycleLength:+$('#sCycle').value,periodLength:+$('#sPeriod').value,lutealLength:+$('#sLut').value,customSymptoms:$('#sCustom').value.split(',').map(x=>x.trim()).filter(Boolean)}); toast('Збережено'); render(); };
+  $('#expCsv').onclick=()=>{
+    const cols=['day','flow','pain','energy','symptoms','mood','discharge','temp','weight','sex','test','pill','meds','note'];
+    const q=v=>{ const s=Array.isArray(v)?v.join('; '):v??''; return /[",\n;]/.test(String(s))?`"${String(s).replace(/"/g,'""')}"`:String(s); };
+    download('cycle-export.csv','﻿'+[cols.join(',')].concat(entryList().map(e=>cols.map(c=>q(c==='day'?e.day:e.data[c])).join(','))).join('\n'),'text/csv');
+  };
+  $('#expJson').onclick=()=>download('cycle-export.json', JSON.stringify({app:'cycle',version:1,exported_at:new Date().toISOString(),settings:DB.settings,entries:entryList().map(e=>({day:e.day,...e.data}))},null,2),'application/json');
+  $('#imp').onchange=async ev=>{ const f=ev.target.files[0]; if(!f) return; try{ const j=JSON.parse(await f.text()); let n=0; for (const e of (j.entries||[])){ if(!/^\d{4}-\d{2}-\d{2}$/.test(e.day||'')) continue; const {day,...rest}=e; setEntry(day,rest); n++; } if (j.settings) setSettings(j.settings); toast(`Імпортовано ${n} днів`); render(); }catch(e){ toast('Помилка імпорту: '+e.message); } };
+  $('#wipe').onclick=()=>{ if(!confirm(connected()?'Стерти локальні дані? На сервері вони залишаться, і ти зможеш увійти знову.':'Стерти всі дані? Без сервера це незворотно.')) return; localStorage.removeItem(KEY); location.reload(); };
+  $('#report').onclick=doctorReport;
+}
+function doctorReport(){
+  const st=ST; if (st.empty) return toast('Ще немає даних');
+  const since=addDays(TODAY,-183), rows=entryList().filter(e=>e.day>=since), sym={};
+  rows.forEach(e=>(e.data.symptoms||[]).forEach(s=>sym[s]=(sym[s]||0)+1));
+  const w=window.open('','_blank'); if(!w) return toast('Дозволь спливаючі вікна');
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Звіт про цикл</title><style>body{font:14px/1.45 system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#222}h1{font-size:22px}h2{font-size:16px;margin-top:22px;border-bottom:1px solid #ddd;padding-bottom:4px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #eee;padding:5px 6px;text-align:left;vertical-align:top}th{font-size:12px;color:#666}.k{display:inline-block;margin-right:24px}</style>
+  <h1>Звіт про менструальний цикл</h1><div style="color:#666">Сформовано ${fmt(TODAY)} ${TODAY.slice(0,4)} · період ${fmt(since)} – ${fmt(TODAY)}</div>
+  <h2>Підсумок</h2><div><span class="k">Середній цикл: <b>${st.cycleLen} дн.</b></span><span class="k">Середні місячні: <b>${st.periodLen} дн.</b></span><span class="k">Розкид: <b>${st.sd===null?'н/д':'±'+st.sd.toFixed(1)+' дн.'}</b></span></div>
+  <div>Останні місячні: <b>${fmt(st.last.start)}</b> · наступні (прогноз): <b>${fmt(st.nextStart)}</b>${st.late?` · <b>затримка ${st.late} дн.</b>`:''}</div>
+  <h2>Цикли</h2><table><tr><th>Початок</th><th>Тривалість циклу</th><th>Тривалість місячних</th></tr>${st.periods.slice(-8).map(p=>{const c=st.cycles.find(c=>c.start===p.start);return `<tr><td>${p.start}</td><td>${c?c.length+' дн.':'триває'}</td><td>${p.length} дн.</td></tr>`;}).join('')}</table>
+  <h2>Симптоми (кількість днів за 6 міс.)</h2><div>${Object.entries(sym).sort((a,b)=>b[1]-a[1]).map(([s,n])=>esc(s)+': '+n).join(' · ')||'не записано'}</div>
+  <h2>Записи</h2><table><tr><th>Дата</th><th>Виділення</th><th>Біль</th><th>Симптоми / нотатки</th></tr>${rows.map(e=>`<tr><td>${e.day}</td><td>${FLOW[e.data.flow||0].t}</td><td>${e.data.pain??''}</td><td>${esc([...(e.data.symptoms||[]),e.data.meds&&('ліки: '+e.data.meds),e.data.note].filter(Boolean).join('; '))}</td></tr>`).join('')}</table>
+  <script>print()<\/script>`);
+  w.document.close();
+}
+
+// ================= boot =================
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+loadDB();
+if (!DB.onboarded) showWelcome(); else { showApp(); sync(); }
+// re-render at midnight so "today" moves on
+setInterval(()=>{ if (TODAY && TODAY!==localISO()) render(); }, 60e3);
+</script>
+</body>
+</html>

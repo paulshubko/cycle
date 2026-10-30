@@ -1,0 +1,14 @@
+[Unit]
+Description=Cycle sync server
+After=network.target
+
+[Service]
+User=pavlo
+WorkingDirectory=/opt/cycle
+Environment=PORT=8790 DATA_DIR=/var/lib/cycle NODE_NO_WARNINGS=1 ALLOWED_ORIGINS=https://paulshubko.github.io
+ExecStart=/usr/bin/node /opt/cycle/server.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

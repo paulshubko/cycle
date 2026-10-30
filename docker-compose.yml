@@ -1,0 +1,16 @@
+services:
+  cycle:
+    build: .
+    container_name: cycle
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8790:8790"   # only Tailscale Funnel reaches it from outside
+    environment:
+      # where the web app is hosted (GitHub Pages). Comma-separated.
+      - ALLOWED_ORIGINS=https://paulshubko.github.io
+      # first account is created in the app via "Створити акаунт"; after that sign-up closes.
+      # set to 1 to let more people register themselves
+      - ALLOW_SIGNUP=0
+      - BACKUP_KEEP=30
+    volumes:
+      - ./data:/data
