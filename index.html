@@ -147,8 +147,7 @@ input[type=range]{width:100%;accent-color:var(--rose)}
 <div id="welcome" class="welcome hidden">
   <div class="card">
     <div style="text-align:center;margin-bottom:16px"><img src="icon.svg" width="56" height="56" alt=""><h1 style="margin:8px 0 0">Цикл</h1><div class="muted small">Трекер циклу з синхронізацією на твій сервер</div></div>
-    <div class="muted small" style="margin-bottom:4px">Сервер</div>
-    <input class="inp" id="wServer" placeholder="Адреса сервера" inputmode="url" autocapitalize="off" autocomplete="url">
+    <input type="hidden" id="wServer">
     <div class="small" id="wStatus" style="min-height:18px;margin:-4px 2px 10px"></div>
     <input class="inp" id="wUser" placeholder="Логін" autocapitalize="off" autocomplete="username">
     <input class="inp" id="wPass" type="password" placeholder="Пароль" autocomplete="current-password">
@@ -281,6 +280,7 @@ function renderSync(){
   if (!el) return;
   $('#syncNow').classList.toggle('hidden', !connected());
   if (!DB.sync.server){ el.textContent = 'Лише на цьому пристрої'; return; }
+  if (!DB.sync.token){ el.innerHTML = '<span class="status-bad">⚠ Не увійдено</span>'; return; }
   if (!DB.sync.token){ el.innerHTML = '<span class="status-bad">⚠ Не увійдено на сервер</span>'; return; }
   if (syncing){ el.textContent = 'Синхронізую…'; return; }
   if (DB.sync.lastError){ el.innerHTML = `<span class="status-bad">⚠ ${esc(DB.sync.lastError)}</span>${n?` · ${n} в черзі`:''}`; return; }
@@ -292,9 +292,10 @@ document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState
 setInterval(()=>sync(), 5*60e3);
 
 // ================= connect / login (like SetFlow) =================
+const SERVER = 'https://macmini.tailf4703b.ts.net:8443';
 function defaultServer(){
-  // If the app is opened from the server itself, use it; on GitHub Pages the user enters the address.
-  return /github\.io$/.test(location.hostname) || location.protocol==='file:' ? '' : location.origin;
+  // Opened from the server itself -> same origin; otherwise (GitHub Pages) the fixed home server.
+  return /github\.io$/.test(location.hostname) || location.protocol==='file:' || /^(localhost|127\.)/.test(location.hostname) && location.port!=='8790' ? SERVER : location.origin;
 }
 async function checkServer(url, out, regBtn){
   out.className='small muted'; out.textContent = url ? 'Перевіряю…' : '';
@@ -334,7 +335,7 @@ function bindLoginForm(prefix){
   $(`#${prefix}Login`).onclick = go(false); reg.onclick = go(true);
   $(`#${prefix}Pass`).onkeydown = e => { if (e.key==='Enter') go(false)(); };
 }
-function showWelcome(){ $('#app').classList.add('hidden'); $('#welcome').classList.remove('hidden'); $('#wServer').value = DB.sync.server || defaultServer(); bindLoginForm('w'); }
+function showWelcome(){ $('#app').classList.add('hidden'); $('#welcome').classList.remove('hidden'); $('#wServer').value = defaultServer(); bindLoginForm('w'); }
 function showApp(){ $('#welcome').classList.add('hidden'); $('#app').classList.remove('hidden'); render(); }
 $('#wLocal').onclick = () => { DB.onboarded = true; saveDB(); showApp(); };
 $('#syncNow').onclick = () => sync();
@@ -414,7 +415,7 @@ function renderToday(){
       <input type="date" class="inp" id="firstDate" max="${today}" value="${today}">
       <div class="row-set"><span>Скільки днів тривали</span><input type="number" id="firstLen" min="1" max="10" value="5" class="inp"></div>
       <button class="btn block" id="firstSave" style="margin-top:10px">Зберегти</button></div>
-      ${connected()?'':`<div class="card"><b>Синхронізація</b><p class="muted small" style="margin:4px 0 10px">Підключи свій сервер, щоб дані зберігались з історією і були на всіх пристроях.</p><button class="btn ghost block" id="goSet">Підключити сервер</button></div>`}`;
+      ${connected()?'':`<div class="card"><b>Синхронізація</b><p class="muted small" style="margin:4px 0 10px">Увійди в акаунт, щоб дані зберігались з історією і були на всіх пристроях.</p><button class="btn ghost block" id="goSet">Увійти</button></div>`}`;
     $('#firstSave').onclick = () => { const start=$('#firstDate').value, len=Math.min(10,Math.max(1,+$('#firstLen').value||5)); markPeriod(start, Math.min(len, diffDays(start,today)+1)); render(); };
     if ($('#goSet')) $('#goSet').onclick = () => { view='set'; render(); };
     return;
@@ -596,7 +597,7 @@ function diffText(a,b){
 }
 async function renderHist(){
   const el=$('#v-hist');
-  if (!connected()){ el.innerHTML=`<h1>Історія змін</h1><div class="card"><p class="muted" style="margin-top:0">Історія всіх змін зберігається на сервері. Підключи його в Профілі, і тут з'явиться журнал з можливістю відкотити будь-яку зміну.</p><button class="btn ghost block" id="goSet2">Підключити сервер</button></div>`; $('#goSet2').onclick=()=>{view='set';render();}; return; }
+  if (!connected()){ el.innerHTML=`<h1>Історія змін</h1><div class="card"><p class="muted" style="margin-top:0">Історія всіх змін зберігається на сервері. Увійди в Профілі, і тут з'явиться журнал з можливістю відкотити будь-яку зміну.</p><button class="btn ghost block" id="goSet2">Увійти</button></div>`; $('#goSet2').onclick=()=>{view='set';render();}; return; }
   el.innerHTML='<h1>Історія змін</h1><div class="card muted">Завантажую…</div>';
   if (Object.keys(DB.dirty).length) await sync({quiet:true});
   let rows; try { rows=await api('/api/history?limit=300'); } catch(e){ el.innerHTML=`<h1>Історія змін</h1><div class="card status-bad">Не вдалося завантажити: ${esc(e.message)}</div>`; return; }
@@ -622,12 +623,11 @@ async function renderHist(){
 function renderSet(){
   const s=DB.settings, sy=DB.sync;
   const acct = connected()
-    ? `<div class="row-set"><span class="muted">Сервер</span><b class="small" style="word-break:break-all;text-align:right">${esc(sy.server.replace(/^https?:\/\//,''))}</b></div>
-       <div class="row-set"><span class="muted">Акаунт</span><b>${esc(sy.username)}</b></div>
+    ? `<div class="row-set"><span class="muted">Акаунт</span><b>${esc(sy.username)}</b></div>
        <div class="row-set"><span class="muted">Остання синхронізація</span><span>${sy.lastSync?new Date(sy.lastSync).toLocaleString('uk-UA',{dateStyle:'short',timeStyle:'short'}):'–'}</span></div>
        <div style="display:grid;gap:8px;margin-top:12px"><button class="btn block" id="sSync">Синхронізувати зараз</button><button class="btn line block" id="sOut">Вийти з акаунта</button></div>`
-    : `<p class="muted small" style="margin:0 0 10px">${sy.server&&!sy.token?'Сесія завершилась, увійди знову.':'Дані зараз тільки на цьому пристрої. Підключи свій сервер, щоб мати історію змін і синхронізацію між пристроями.'}</p>
-       <input class="inp" id="pServer" placeholder="Адреса сервера" inputmode="url" autocapitalize="off" value="${esc(sy.server||defaultServer())}" style="margin-bottom:10px">
+    : `<p class="muted small" style="margin:0 0 10px">${sy.server&&!sy.token?'Сесія завершилась, увійди знову.':'Дані зараз тільки на цьому пристрої. Увійди, щоб мати історію змін і синхронізацію між пристроями.'}</p>
+       <input type="hidden" id="pServer" value="${esc(defaultServer())}">
        <div class="small" id="pStatus" style="min-height:18px;margin:-4px 2px 10px"></div>
        <input class="inp" id="pUser" placeholder="Логін" autocapitalize="off" autocomplete="username" value="${esc(sy.username||'')}" style="margin-bottom:10px">
        <input class="inp" id="pPass" type="password" placeholder="Пароль" autocomplete="current-password" style="margin-bottom:6px">
@@ -635,7 +635,7 @@ function renderSet(){
        <button class="btn block" id="pLogin">Увійти</button>
        <button class="btn ghost block hidden" id="pReg" style="margin-top:8px">Створити акаунт</button>`;
   $('#v-set').innerHTML=`<h1>Профіль</h1>
-  <h2 style="margin-top:0">Сервер</h2><div class="card">${acct}</div>
+  <h2 style="margin-top:0">Акаунт</h2><div class="card">${acct}</div>
   <h2>Параметри прогнозу</h2>
   <div class="card"><p class="muted small" style="margin:0 0 6px">Використовуються, поки в історії мало циклів. Далі прогноз рахується з твоїх даних.</p>
     <div class="row-set"><span>Тривалість циклу</span><input type="number" class="inp" id="sCycle" min="15" max="60" value="${s.cycleLength||28}"></div>
