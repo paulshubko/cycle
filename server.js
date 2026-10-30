@@ -12,6 +12,8 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const WEB_DIR = path.join(__dirname, 'web');
 const BACKUP_KEEP = Number(process.env.BACKUP_KEEP || 30);
 const ALLOW_SIGNUP = process.env.ALLOW_SIGNUP === '1';
+// Single-person mode: no login, every request acts as the owner account. Set REQUIRE_AUTH=1 to turn passwords back on.
+const OPEN = process.env.REQUIRE_AUTH !== '1';
 const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://paulshubko.github.io').split(',').map(s => s.trim()).filter(Boolean);
 
 fs.mkdirSync(path.join(DATA_DIR, 'backups'), { recursive: true });
@@ -57,7 +59,26 @@ function checkPass(p, stored) {
 const userCount = () => db.prepare('SELECT COUNT(*) n FROM users').get().n;
 function createUser(name, pass) {
   const admin = userCount() === 0 ? 1 : 0;
-  return db.prepare('INSERT INTO users (username, pass_hash, is_admin) VALUES (?, ?, ?)').run(name, hashPass(pass), admin).lastInsertRowid;
+  const id = db.prepare('INSERT INTO users (username, pass_hash, is_admin) VALUES (?, ?, ?)').run(name, hashPass(pass), admin).lastInsertRowid;
+  if (admin) importSeed(id);
+  return id;
+}
+// Imports seed.json (period history exported from another app) into the owner account, once.
+function importSeed(userId) {
+  const f = path.join(__dirname, 'seed.json');
+  if (!fs.existsSync(f)) return;
+  if (db.prepare('SELECT COUNT(*) n FROM history WHERE user_id = ?').get(userId).n > 0) return;
+  const { periods = [] } = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const today = new Date().toISOString().slice(0, 10), ts = Date.now();
+  let n = 0;
+  for (const p of periods) {
+    for (let i = 0; i < Math.min(p.days, 14); i++) {
+      const day = new Date(Date.parse(p.start + 'T00:00:00Z') + i * 864e5).toISOString().slice(0, 10);
+      if (day > today) continue;
+      if (applyChange(userId, day, { flow: 3 }, ts, 'seed', 'import')) n++;
+    }
+  }
+  console.log(`Imported ${n} days from seed.json`);
 }
 
 // CLI: node server.js adduser <name> <password> | passwd <name> <password> | users
@@ -77,7 +98,14 @@ if (userCount() === 0 && process.env.INIT_USER && process.env.INIT_PASSWORD) {
   console.log(`Created user ${process.env.INIT_USER}`);
 }
 
+{ const owner = db.prepare('SELECT id FROM users ORDER BY id LIMIT 1').get(); if (owner) setImmediate(() => importSeed(owner.id)); }
+
 function getUser(req) {
+  if (OPEN) {
+    if (userCount() === 0) createUser('admin', crypto.randomBytes(24).toString('hex'));
+    const u = db.prepare('SELECT id, username, settings, settings_ts FROM users ORDER BY id LIMIT 1').get();
+    return { ...u, tokenHash: '' };
+  }
   const m = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.authorization || '');
   if (!m) return null;
   const h = sha(m[1]);
@@ -185,13 +213,14 @@ const deviceOf = req => String(req.headers['x-device'] || '').slice(0, 60);
 async function api(req, res, url) {
   const p = url.pathname, R = (c, b, h) => send(req, res, c, b, h);
   if (req.method === 'OPTIONS') return R(204, '');
-  if (p === '/api/health') return R(200, { ok: true, app: 'cycle', signup: ALLOW_SIGNUP || userCount() === 0 });
+  if (p === '/api/health') return R(200, { ok: true, app: 'cycle', open: OPEN, signup: ALLOW_SIGNUP || userCount() === 0 });
 
   if ((p === '/api/login' || p === '/api/register') && req.method === 'POST') {
     const key = ipOf(req);
     if (limited(key)) return R(429, { error: 'Забагато спроб, зачекай 10 хвилин' });
     const { username, password } = await readBody(req);
-    const name = String(username || '').trim().toLowerCase(), pass = String(password || '');
+    let name = String(username || '').trim().toLowerCase(); const pass = String(password || '');
+    if (p === '/api/register' && !name) name = 'admin';
     if (p === '/api/register') {
       if (!(ALLOW_SIGNUP || userCount() === 0)) return R(403, { error: 'Реєстрація на цьому сервері вимкнена' });
       if (!/^[a-z0-9._-]{2,32}$/.test(name)) return R(400, { error: 'Логін: 2–32 символи, латиниця/цифри' });
@@ -200,7 +229,8 @@ async function api(req, res, url) {
       const id = createUser(name, pass);
       return R(200, { token: issueToken(id, deviceOf(req)), username: name });
     }
-    const u = db.prepare('SELECT * FROM users WHERE username = ?').get(name);
+    const u = name ? db.prepare('SELECT * FROM users WHERE username = ?').get(name)
+                   : db.prepare('SELECT * FROM users ORDER BY id LIMIT 1').get();
     if (!u || !checkPass(pass, u.pass_hash)) { fail(key); return R(401, { error: 'Невірний логін або пароль' }); }
     attempts.delete(key);
     return R(200, { token: issueToken(u.id, deviceOf(req)), username: u.username });
