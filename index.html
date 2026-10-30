@@ -149,11 +149,11 @@ input[type=range]{width:100%;accent-color:var(--rose)}
     <div style="text-align:center;margin-bottom:16px"><img src="icon.svg" width="56" height="56" alt=""><h1 style="margin:8px 0 0">Цикл</h1><div class="muted small">Трекер циклу з синхронізацією на твій сервер</div></div>
     <input type="hidden" id="wServer">
     <div class="small" id="wStatus" style="min-height:18px;margin:-4px 2px 10px"></div>
-    <input class="inp" id="wUser" placeholder="Логін" autocapitalize="off" autocomplete="username">
-    <input class="inp" id="wPass" type="password" placeholder="Пароль" autocomplete="current-password">
+    <input type="text" id="wUser" name="username" value="admin" autocomplete="username" hidden>
+    <input class="inp" id="wPass" type="password" placeholder="Пароль" autocomplete="current-password" autofocus>
     <div class="err" id="wErr"></div>
     <button class="btn block" id="wLogin">Увійти</button>
-    <button class="btn ghost block hidden" id="wReg" style="margin-top:8px">Створити акаунт</button>
+    <button class="btn ghost block hidden" id="wReg" style="margin-top:8px">Створити пароль</button>
     <div class="or">або</div>
     <button class="btn line block" id="wLocal">Працювати без акаунта (дані лише на цьому пристрої)</button>
   </div>
@@ -221,6 +221,9 @@ let DB;
 function loadDB(){
   try { DB = JSON.parse(localStorage.getItem(KEY)) || null; } catch { DB = null; }
   DB = Object.assign({ entries:{}, settings:{}, settingsTs:0, settingsDirty:false, dirty:{}, sync:{ server:'', token:'', username:'', seq:0, lastSync:0, lastError:'' }, onboarded:false }, DB||{});
+  // single-person mode: no login, always sync with the home server
+  if (DB.sync.server !== defaultServer()) { DB.sync.seq = 0; for (const d of Object.keys(DB.entries)) DB.dirty[d] = true; }
+  DB.sync.server = defaultServer(); DB.sync.token = 'open'; DB.onboarded = true;
 }
 function saveDB(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e){ toast('Не вдалося зберегти локально: '+e.message); } }
 const entryOf = day => (DB.entries[day] && DB.entries[day].data) || {};
@@ -237,9 +240,9 @@ const connected = () => !!(DB.sync.server && DB.sync.token);
 // ================= sync with server =================
 const base = () => DB.sync.server.replace(/\/+$/,'');
 async function api(path, opts={}){
-  const r = await fetch(base()+path, {...opts, headers:{'Content-Type':'application/json','X-Device':DEVICE, ...(DB.sync.token?{Authorization:'Bearer '+DB.sync.token}:{}), ...(opts.headers||{})}});
+  const r = await fetch(base()+path, {...opts, headers:{'Content-Type':'application/json','X-Device':DEVICE,  ...(opts.headers||{})}});
   const j = await r.json().catch(()=>({}));
-  if (r.status===401 && DB.sync.token){ DB.sync.token=''; DB.sync.lastError='Сесія завершилась, увійди знову'; saveDB(); renderSync(); }
+  
   if (!r.ok) throw new Error(j.error||('HTTP '+r.status));
   return j;
 }
@@ -280,10 +283,8 @@ function renderSync(){
   if (!el) return;
   $('#syncNow').classList.toggle('hidden', !connected());
   if (!DB.sync.server){ el.textContent = 'Лише на цьому пристрої'; return; }
-  if (!DB.sync.token){ el.innerHTML = '<span class="status-bad">⚠ Не увійдено</span>'; return; }
-  if (!DB.sync.token){ el.innerHTML = '<span class="status-bad">⚠ Не увійдено на сервер</span>'; return; }
   if (syncing){ el.textContent = 'Синхронізую…'; return; }
-  if (DB.sync.lastError){ el.innerHTML = `<span class="status-bad">⚠ ${esc(DB.sync.lastError)}</span>${n?` · ${n} в черзі`:''}`; return; }
+  if (DB.sync.lastError){ el.innerHTML = `<span class="status-bad">⚠ ${DB.sync.lastError==='Failed to fetch'?'сервер недоступний':esc(DB.sync.lastError)}</span>${n?` · ${n} в черзі`:''}`; return; }
   if (n){ el.textContent = `⏳ ${n} ${plural(n,'зміна','зміни','змін')} в черзі`; return; }
   el.innerHTML = DB.sync.lastSync ? `<span class="status-ok">✓</span> синхронізовано ${new Date(DB.sync.lastSync).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'})}` : '';
 }
@@ -304,14 +305,14 @@ async function checkServer(url, out, regBtn){
     const r = await fetch(url.replace(/\/+$/,'')+'/api/health'); const j = await r.json();
     if (j.app!=='cycle') throw 0;
     out.className='small status-ok'; out.textContent='✓ Сервер доступний';
-    if (regBtn) regBtn.classList.toggle('hidden', !j.signup);
+    if (regBtn){ regBtn.classList.toggle('hidden', !j.signup); const lb=document.getElementById(regBtn.id.replace('Reg','Login')); if(lb) lb.classList.toggle('hidden', !!j.signup); }
     return true;
   } catch { out.className='small status-bad'; out.textContent='✗ Сервер недоступний'; if(regBtn) regBtn.classList.add('hidden'); return false; }
 }
 async function doLogin(server, user, pass, register){
   const url = server.trim().replace(/\/+$/,'');
   if (!/^https?:\/\//.test(url)) throw new Error('Адреса має починатися з https://');
-  const r = await fetch(url + (register?'/api/register':'/api/login'), { method:'POST', headers:{'Content-Type':'application/json','X-Device':DEVICE}, body: JSON.stringify({username:user, password:pass}) });
+  const r = await fetch(url + (register?'/api/register':'/api/login'), { method:'POST', headers:{'Content-Type':'application/json','X-Device':DEVICE}, body: JSON.stringify(register?{password:pass}:{password:pass}) });
   const j = await r.json().catch(()=>({}));
   if (!r.ok) throw new Error(j.error || 'HTTP '+r.status);
   const sameAccount = DB.sync.username === j.username && DB.sync.server === url;
@@ -622,20 +623,11 @@ async function renderHist(){
 // ---------- PROFILE / SETTINGS ----------
 function renderSet(){
   const s=DB.settings, sy=DB.sync;
-  const acct = connected()
-    ? `<div class="row-set"><span class="muted">Акаунт</span><b>${esc(sy.username)}</b></div>
-       <div class="row-set"><span class="muted">Остання синхронізація</span><span>${sy.lastSync?new Date(sy.lastSync).toLocaleString('uk-UA',{dateStyle:'short',timeStyle:'short'}):'–'}</span></div>
-       <div style="display:grid;gap:8px;margin-top:12px"><button class="btn block" id="sSync">Синхронізувати зараз</button><button class="btn line block" id="sOut">Вийти з акаунта</button></div>`
-    : `<p class="muted small" style="margin:0 0 10px">${sy.server&&!sy.token?'Сесія завершилась, увійди знову.':'Дані зараз тільки на цьому пристрої. Увійди, щоб мати історію змін і синхронізацію між пристроями.'}</p>
-       <input type="hidden" id="pServer" value="${esc(defaultServer())}">
-       <div class="small" id="pStatus" style="min-height:18px;margin:-4px 2px 10px"></div>
-       <input class="inp" id="pUser" placeholder="Логін" autocapitalize="off" autocomplete="username" value="${esc(sy.username||'')}" style="margin-bottom:10px">
-       <input class="inp" id="pPass" type="password" placeholder="Пароль" autocomplete="current-password" style="margin-bottom:6px">
-       <div class="err" id="pErr"></div>
-       <button class="btn block" id="pLogin">Увійти</button>
-       <button class="btn ghost block hidden" id="pReg" style="margin-top:8px">Створити акаунт</button>`;
+  const acct = `<div class="row-set"><span class="muted">Остання синхронізація</span><span>${sy.lastSync?new Date(sy.lastSync).toLocaleString('uk-UA',{dateStyle:'short',timeStyle:'short'}):'–'}</span></div>
+       ${sy.lastError?`<div class="small status-bad" style="margin-top:6px">⚠ ${sy.lastError==='Failed to fetch'?'Сервер недоступний. Дані збережені на телефоні й відправляться пізніше.':esc(sy.lastError)}</div>`:''}
+       <button class="btn block" id="sSync" style="margin-top:12px">Синхронізувати зараз</button>`;
   $('#v-set').innerHTML=`<h1>Профіль</h1>
-  <h2 style="margin-top:0">Акаунт</h2><div class="card">${acct}</div>
+  <h2 style="margin-top:0">Синхронізація</h2><div class="card">${acct}</div>
   <h2>Параметри прогнозу</h2>
   <div class="card"><p class="muted small" style="margin:0 0 6px">Використовуються, поки в історії мало циклів. Далі прогноз рахується з твоїх даних.</p>
     <div class="row-set"><span>Тривалість циклу</span><input type="number" class="inp" id="sCycle" min="15" max="60" value="${s.cycleLength||28}"></div>
@@ -649,13 +641,11 @@ function renderSet(){
     <button class="btn line block" id="expCsv">Експорт CSV</button>
     <button class="btn line block" id="expJson">Експорт JSON (повний бекап)</button>
     <label class="btn line block">Імпорт JSON<input type="file" accept=".json,application/json" id="imp" hidden></label>
+    <label class="btn line block">Імпорт історії з Life (CSV)<input type="file" accept=".csv,text/csv" id="impLife" hidden></label>
     <button class="btn line block" id="wipe" style="color:var(--rose-2)">Стерти дані з цього пристрою</button>
   </div>
   <p class="muted small" style="margin:4px">Застосунок не є медичним виробом. Прогнози не замінюють консультацію лікаря і не є методом контрацепції.</p>`;
-  if (connected()){
-    $('#sSync').onclick=()=>sync().then(()=>toast(DB.sync.lastError?'Помилка: '+DB.sync.lastError:'Синхронізовано'));
-    $('#sOut').onclick=async()=>{ if(!confirm('Вийти з акаунта? Дані залишаться на цьому пристрої.')) return; await sync(); await api('/api/logout',{method:'POST',body:'{}'}).catch(()=>{}); DB.sync.token=''; saveDB(); render(); };
-  } else bindLoginForm('p');
+  $('#sSync').onclick=()=>sync().then(()=>{ toast(DB.sync.lastError?'Сервер недоступний':'Синхронізовано'); render(); });
   $('#sSave').onclick=()=>{ setSettings({cycleLength:+$('#sCycle').value,periodLength:+$('#sPeriod').value,lutealLength:+$('#sLut').value,customSymptoms:$('#sCustom').value.split(',').map(x=>x.trim()).filter(Boolean)}); toast('Збережено'); render(); };
   $('#expCsv').onclick=()=>{
     const cols=['day','flow','pain','energy','symptoms','mood','discharge','temp','weight','sex','test','pill','meds','note'];
@@ -664,6 +654,11 @@ function renderSet(){
   };
   $('#expJson').onclick=()=>download('cycle-export.json', JSON.stringify({app:'cycle',version:1,exported_at:new Date().toISOString(),settings:DB.settings,entries:entryList().map(e=>({day:e.day,...e.data}))},null,2),'application/json');
   $('#imp').onchange=async ev=>{ const f=ev.target.files[0]; if(!f) return; try{ const j=JSON.parse(await f.text()); let n=0; for (const e of (j.entries||[])){ if(!/^\d{4}-\d{2}-\d{2}$/.test(e.day||'')) continue; const {day,...rest}=e; setEntry(day,rest); n++; } if (j.settings) setSettings(j.settings); toast(`Імпортовано ${n} днів`); render(); }catch(e){ toast('Помилка імпорту: '+e.message); } };
+  $('#impLife').onchange=async ev=>{ const f=ev.target.files[0]; if(!f) return;
+    const rows=(await f.text()).split(/\r?\n/).map(l=>l.trim().split(',')).filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r[0])&&+r[1]>0);
+    if(!rows.length) return toast('Не знайшов рядків з датами у файлі');
+    let n=0; for (const [start,len] of rows) for (let i=0;i<Math.min(+len,14);i++){ const d=addDays(start,i); if(d>localISO()) continue; const e=entryOf(d); if((e.flow||0)<3){ setEntry(d,{...e,flow:3}); n++; } }
+    toast(`Додано ${rows.length} ${plural(rows.length,'цикл','цикли','циклів')} (${n} днів)`); render(); };
   $('#wipe').onclick=()=>{ if(!confirm(connected()?'Стерти локальні дані? На сервері вони залишаться, і ти зможеш увійти знову.':'Стерти всі дані? Без сервера це незворотно.')) return; localStorage.removeItem(KEY); location.reload(); };
   $('#report').onclick=doctorReport;
 }
@@ -686,7 +681,7 @@ function doctorReport(){
 // ================= boot =================
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 loadDB();
-if (!DB.onboarded) showWelcome(); else { showApp(); sync(); }
+showApp(); sync();
 // re-render at midnight so "today" moves on
 setInterval(()=>{ if (TODAY && TODAY!==localISO()) render(); }, 60e3);
 </script>
